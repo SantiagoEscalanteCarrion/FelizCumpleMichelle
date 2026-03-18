@@ -1,13 +1,13 @@
 #!/usr/bin/env python3
 """
-Feliz Cumpleaños Michelle ♡
-Un mensaje especial de Santi
+Feliz Cumpleanos Michelle <3
+Un regalo de Santi
 
-Cómo correr:
+Ejecutar:
     pip install pygame
     python feliz_cumple.py
 
-Asegúrate de que 'michelle.jpg' esté en la misma carpeta que este script.
+La imagen 'michelle.jpg' debe estar en la misma carpeta que este script.
 """
 
 import pygame
@@ -19,36 +19,38 @@ import os
 pygame.init()
 
 # ─────────────────────────────────────────────────────────────────
-#  CONFIGURACIÓN
+#  CONFIGURACION
 # ─────────────────────────────────────────────────────────────────
-WIDTH, HEIGHT = 1300, 750
-FPS = 60
+WIDTH, HEIGHT     = 1300, 750
+FPS               = 60
+CHAR_DELAY_MS     = 22      # ms por caracter
 
-IMG_REVEAL_SPEED = 0.0014   # fracción revelada por frame (~12s para imagen completa)
-CHAR_DELAY_MS    = 22       # ms entre cada carácter del texto
+# Brush stroke reveal
+TOTAL_STROKES     = 900     # trazos totales para revelar imagen
+STROKES_PER_FRAME = 1.6     # trazos por frame  → ~9-10 segundos
 
 # Colores
-BG       = (10, 8, 20)
-TEXT_COL = (240, 230, 220)
-PINK     = (255, 150, 180)
-GOLD     = (255, 210, 80)
-LAVENDER = (190, 165, 255)
-WHITE    = (255, 255, 255)
-TEAL     = (100, 220, 210)
+BG          = (10, 8, 20)
+TURQUOISE   = (75, 210, 200)      # texto principal
+LIGHT_GREEN = (140, 225, 140)     # resaltados (FELIZ CUMPLE, BYEEEEEEE)
+GOLD        = (255, 210, 80)      # firma
+LAVENDER    = (190, 165, 255)     # primera linea
+CAPTION_COL = (150, 140, 185)     # pie de foto
+SCROLL_BG   = (30, 25, 50)
+SCROLL_THUMB= (100, 90, 145)
 
 # ─────────────────────────────────────────────────────────────────
 #  PANTALLA
 # ─────────────────────────────────────────────────────────────────
 screen = pygame.display.set_mode((WIDTH, HEIGHT))
 pygame.display.set_caption("Feliz Cumpleanios Michelle")
-clock = pygame.time.Clock()
+clock  = pygame.time.Clock()
 
 # ─────────────────────────────────────────────────────────────────
 #  FUENTES
 # ─────────────────────────────────────────────────────────────────
 def load_font(size, bold=False):
-    candidates = ["Segoe UI", "Ubuntu", "DejaVu Sans", "Liberation Sans", "Arial"]
-    for name in candidates:
+    for name in ["Segoe UI", "Ubuntu", "DejaVu Sans", "Liberation Sans", "Arial"]:
         try:
             f = pygame.font.SysFont(name, size, bold=bold)
             if f:
@@ -57,10 +59,10 @@ def load_font(size, bold=False):
             pass
     return pygame.font.Font(None, size)
 
-FONT_TEXT  = load_font(16)
-FONT_TITLE = load_font(22, bold=True)
-FONT_SIGN  = load_font(17, bold=True)
-LINE_H     = FONT_TEXT.get_linesize() + 3
+FONT_TEXT    = load_font(16)
+FONT_TITLE   = load_font(22, bold=True)
+FONT_CAPTION = load_font(13)
+LINE_H       = FONT_TEXT.get_linesize() + 3
 
 # ─────────────────────────────────────────────────────────────────
 #  MENSAJE
@@ -72,7 +74,7 @@ Ahora, no tenia ni fokin idea de que hacerte. Veia a Naye avanzando el librito, 
 
 Entonces se me ocurrio hacerte algo en lo que si soy bueno, que es con la computadora basicamente (un poco geek de mi parte? puede ser, pero ya me conoces ya).
 
-Asi que nada, este codiguito es para ti. Espero que te guste. Ahora si se viene el textazo ehhhhhh (aviso que probablemente me vaya en floro. Voy escribiendo sobre la marcha):
+Asi que nada, este codiguito es para ti, un regalo mucho mas a mi estilo jeje. Espero que te guste. Ahora si se viene el textazo ehhhhhh (aviso que probablemente me vaya en floro. Voy escribiendo sobre la marcha):
 
 Bueno, incluso antes de conocerte, yo ya sabia la increible persona que eras. Me acuerdo que Naye llego una madrugada a contarme que habia ido a patinar con un grupo de chicas muy divertidas y que la habia pasado increible. Me alegro verla llegar feliz y dije: ojala conocerlas algun dia (no se volvieron a ver en todo el semestre).
 
@@ -91,16 +93,85 @@ Sinceramente, no se que tan largo me quedo esto ni cuanto tardare en compilarlo,
                                                       Te quiere, Santi <3"""
 
 # ─────────────────────────────────────────────────────────────────
-#  UTILIDAD: WRAP DE TEXTO
+#  PATH HELPER (compatible con PyInstaller --onefile)
 # ─────────────────────────────────────────────────────────────────
+def resource_path(rel):
+    if hasattr(sys, '_MEIPASS'):
+        return os.path.join(sys._MEIPASS, rel)
+    return os.path.join(os.path.dirname(os.path.abspath(__file__)), rel)
+
+# ─────────────────────────────────────────────────────────────────
+#  IMAGEN + BRUSH STROKE MASK
+# ─────────────────────────────────────────────────────────────────
+IMG_AREA_W = 490
+IMG_AREA_H = HEIGHT - 115
+IMG_AREA_X = 15
+IMG_AREA_Y = 38
+
+image = None
+iw, ih = IMG_AREA_W, IMG_AREA_H
+img_x, img_y = IMG_AREA_X, IMG_AREA_Y
+
+try:
+    raw   = pygame.image.load(resource_path("michelle.jpg"))
+    rw, rh = raw.get_size()
+    scale  = min(IMG_AREA_W / rw, IMG_AREA_H / rh)
+    iw, ih = int(rw * scale), int(rh * scale)
+    image  = pygame.transform.smoothscale(raw, (iw, ih))
+    img_x  = IMG_AREA_X + (IMG_AREA_W - iw) // 2
+    img_y  = IMG_AREA_Y + (IMG_AREA_H - ih) // 2
+    print(f"Imagen cargada: {iw}x{ih}")
+except Exception as e:
+    print(f"[!] No se pudo cargar 'michelle.jpg': {e}")
+
+CAPTION_TEXT = "La unica foto que tenemos juntos dio mio"
+
+# Preparar mascara de reveal y trazos
+reveal_mask        = None
+strokes_data       = []
+strokes_done_f     = 0.0
+strokes_done       = 0
+img_fully_revealed = False
+
+if image:
+    reveal_mask = pygame.Surface((iw, ih), pygame.SRCALPHA)
+    reveal_mask.fill((0, 0, 0, 255))   # negro opaco = imagen oculta
+
+    random.seed(42)   # seed fijo para consistencia
+    for _ in range(TOTAL_STROKES):
+        x  = random.randint(-35, iw + 35)
+        y  = random.randint(-35, ih + 35)
+        roll = random.random()
+        if roll < 0.12:
+            r = random.randint(4, 16)     # trazos finos (detalle)
+        elif roll < 0.82:
+            r = random.randint(16, 48)    # trazos medios (cuerpo)
+        else:
+            r = random.randint(48, 85)    # trazos grandes (relleno)
+        aspect = random.uniform(0.45, 1.9)
+        wr = max(3, int(r * aspect))
+        hr = max(3, int(r / aspect))
+        strokes_data.append((x, y, wr, hr))
+    random.seed()   # restaurar semilla aleatoria
+
+# ─────────────────────────────────────────────────────────────────
+#  AREA DE TEXTO
+# ─────────────────────────────────────────────────────────────────
+SCROLLBAR_W = 7
+SCROLLBAR_X = WIDTH - 16
+TEXT_X = IMG_AREA_X + IMG_AREA_W + 28
+TEXT_W = WIDTH - TEXT_X - SCROLLBAR_W - 20
+TEXT_Y = 52
+TEXT_H = HEIGHT - TEXT_Y - 20
+
 def wrap_text(text, font, max_width):
     result = []
-    for paragraph in text.split('\n'):
-        if not paragraph.strip():
+    for para in text.split('\n'):
+        if not para.strip():
             result.append('')
             continue
-        words = paragraph.split(' ')
-        line = ''
+        words = para.split(' ')
+        line  = ''
         for word in words:
             test = (line + ' ' + word).strip()
             if font.size(test)[0] <= max_width:
@@ -113,93 +184,12 @@ def wrap_text(text, font, max_width):
             result.append(line)
     return result
 
-# ─────────────────────────────────────────────────────────────────
-#  IMAGEN
-# ─────────────────────────────────────────────────────────────────
-IMG_AREA_W = 490
-IMG_AREA_H = HEIGHT - 80
-IMG_AREA_X = 15
-IMG_AREA_Y = 40
+all_lines    = wrap_text(MESSAGE, FONT_TEXT, TEXT_W - 6)
+total_chars  = sum(len(ln) + 1 for ln in all_lines)
+total_text_h = len(all_lines) * LINE_H
 
-script_dir = os.path.dirname(os.path.abspath(__file__))
-img_path   = os.path.join(script_dir, "michelle.jpg")
-
-image = None
-iw, ih = IMG_AREA_W, IMG_AREA_H
-img_x, img_y = IMG_AREA_X, IMG_AREA_Y
-
-try:
-    raw = pygame.image.load(img_path)
-    rw, rh = raw.get_size()
-    scale = min(IMG_AREA_W / rw, IMG_AREA_H / rh)
-    iw, ih = int(rw * scale), int(rh * scale)
-    image = pygame.transform.smoothscale(raw, (iw, ih))
-    img_x = IMG_AREA_X + (IMG_AREA_W - iw) // 2
-    img_y = IMG_AREA_Y + (IMG_AREA_H - ih) // 2
-    print(f"Imagen cargada: {iw}x{ih}")
-except Exception as e:
-    print(f"[!] No se pudo cargar 'michelle.jpg': {e}")
-    print("    Asegurate de que el archivo esta en la misma carpeta que el script.")
-
-# ─────────────────────────────────────────────────────────────────
-#  AREA DE TEXTO
-# ─────────────────────────────────────────────────────────────────
-TEXT_X = IMG_AREA_X + IMG_AREA_W + 28
-TEXT_W = WIDTH - TEXT_X - 18
-TEXT_Y = 55
-TEXT_H = HEIGHT - TEXT_Y - 20
-
-all_lines   = wrap_text(MESSAGE, FONT_TEXT, TEXT_W - 12)
-total_chars = sum(len(ln) + 1 for ln in all_lines)
-
-# ─────────────────────────────────────────────────────────────────
-#  PARTÍCULAS FLOTANTES
-# ─────────────────────────────────────────────────────────────────
-PARTICLE_COLORS = [PINK, GOLD, LAVENDER, WHITE, TEAL, (200, 255, 180)]
-
-class Particle:
-    def __init__(self):
-        self.reset()
-
-    def reset(self):
-        self.x    = random.uniform(0, WIDTH)
-        self.y    = random.uniform(0, HEIGHT)
-        self.size = random.randint(1, 3)
-        self.color = random.choice(PARTICLE_COLORS)
-        self.life  = random.randint(70, 160)
-        self.max_life = self.life
-        self.vx   = random.uniform(-0.3, 0.3)
-        self.vy   = random.uniform(-0.7, -0.15)
-        self.phase = random.uniform(0, math.pi * 2)
-
-    def update(self):
-        self.x    += self.vx + 0.3 * math.sin(self.life * 0.08 + self.phase)
-        self.y    += self.vy
-        self.life -= 1
-        return self.life > 0
-
-    def draw(self, surface):
-        ratio = self.life / self.max_life
-        alpha = int(220 * ratio * (0.5 + 0.5 * math.sin(self.life * 0.15 + self.phase)))
-        s = pygame.Surface((self.size * 2 + 2, self.size * 2 + 2), pygame.SRCALPHA)
-        pygame.draw.circle(s, (*self.color, alpha), (self.size + 1, self.size + 1), self.size)
-        surface.blit(s, (int(self.x) - self.size - 1, int(self.y) - self.size - 1))
-
-particles = [Particle() for _ in range(60)]
-
-# ─────────────────────────────────────────────────────────────────
-#  ESTADO DE ANIMACIÓN
-# ─────────────────────────────────────────────────────────────────
-img_reveal     = 0.0
-chars_revealed = 0
-last_char_tick = pygame.time.get_ticks()
-text_scroll    = 0
-
-# ─────────────────────────────────────────────────────────────────
-#  HELPERS DE DIBUJO
-# ─────────────────────────────────────────────────────────────────
-def get_revealed_lines(all_lines, char_count):
-    result = []
+def get_revealed_lines(char_count):
+    result    = []
     remaining = char_count
     for line in all_lines:
         ll = len(line) + 1
@@ -213,107 +203,73 @@ def get_revealed_lines(all_lines, char_count):
             break
     return result
 
+def line_color(line):
+    up = line.upper()
+    if 'FELIZ CUMPLE' in up or 'BYEEEEEEE' in up:
+        return LIGHT_GREEN
+    if 'TE QUIERE, SANTI' in up or line.strip().endswith('<3'):
+        return GOLD
+    if line.startswith('Micheeeelle'):
+        return LAVENDER
+    return TURQUOISE
 
-def draw_image_reveal(surface, img, x, y, w, h, reveal):
-    if img is None:
-        # Placeholder si no hay imagen
-        r = int(reveal * h)
-        pygame.draw.rect(surface, (30, 25, 50), (x, y, w, r))
-        msg = FONT_TEXT.render("[ michelle.jpg no encontrada ]", True, LAVENDER)
-        surface.blit(msg, (x + 10, y + r // 2))
+# ─────────────────────────────────────────────────────────────────
+#  PARTICULAS FLOTANTES
+# ─────────────────────────────────────────────────────────────────
+PCOLS = [LIGHT_GREEN, GOLD, LAVENDER, (255, 255, 255), TURQUOISE, (200, 255, 200)]
+
+class Particle:
+    def __init__(self):
+        self.x     = random.uniform(0, WIDTH)
+        self.y     = random.uniform(0, HEIGHT)
+        self.size  = random.randint(1, 3)
+        self.color = random.choice(PCOLS)
+        self.life  = random.randint(70, 160)
+        self.max_l = self.life
+        self.vx    = random.uniform(-0.3, 0.3)
+        self.vy    = random.uniform(-0.7, -0.15)
+        self.phase = random.uniform(0, math.pi * 2)
+
+    def update(self):
+        self.x += self.vx + 0.25 * math.sin(self.life * 0.08 + self.phase)
+        self.y += self.vy
+        self.life -= 1
+        return self.life > 0
+
+    def draw(self, surface):
+        alpha = int(200 * (self.life / self.max_l) *
+                    (0.5 + 0.5 * math.sin(self.life * 0.15 + self.phase)))
+        s = pygame.Surface((self.size * 2 + 2, self.size * 2 + 2), pygame.SRCALPHA)
+        pygame.draw.circle(s, (*self.color, alpha),
+                           (self.size + 1, self.size + 1), self.size)
+        surface.blit(s, (int(self.x) - self.size - 1, int(self.y) - self.size - 1))
+
+particles = [Particle() for _ in range(55)]
+
+# ─────────────────────────────────────────────────────────────────
+#  ESTADO DE ANIMACION
+# ─────────────────────────────────────────────────────────────────
+chars_revealed = 0
+last_char_tick = pygame.time.get_ticks()
+
+scroll_target  = 0     # destino del scroll (pixeles)
+scroll_current = 0.0   # valor suavizado actual
+auto_scroll    = True  # seguir el texto nuevo
+
+# ─────────────────────────────────────────────────────────────────
+#  SCROLLBAR
+# ─────────────────────────────────────────────────────────────────
+def draw_scrollbar(surface, scroll, max_scroll):
+    if max_scroll <= 0:
         return
-
-    reveal_px = int(h * reveal)
-    if reveal_px > 0:
-        sub = img.subsurface((0, 0, w, reveal_px))
-        surface.blit(sub, (x, y))
-
-    # Línea de escaneo brillante
-    if 0 < reveal < 1.0:
-        scan_y = y + reveal_px
-        for i in range(10):
-            a = max(0, 160 - i * 17)
-            gs = pygame.Surface((w, 2), pygame.SRCALPHA)
-            glow_col = (200, 140, 255, a)
-            gs.fill(glow_col)
-            surface.blit(gs, (x, scan_y - i))
-        # Destello más brillante en el frente
-        bright = pygame.Surface((w, 3), pygame.SRCALPHA)
-        bright.fill((240, 200, 255, 200))
-        surface.blit(bright, (x, scan_y))
-
-
-def draw_image_frame(surface, x, y, w, h, reveal):
-    if reveal <= 0:
-        return
-    alpha_factor = min(1.0, reveal * 2)
-    color = tuple(int(c * alpha_factor) for c in PINK)
-    revealed_h = int(h * reveal)
-    # Bordes del área revelada
-    pygame.draw.rect(surface, color, (x - 2, y - 2, w + 4, revealed_h + 4), 2)
-
-
-def draw_text_panel(surface, rev_lines, scroll_y, now, chars_done, total):
-    clip_rect = pygame.Rect(TEXT_X, TEXT_Y, TEXT_W, TEXT_H)
-    surface.set_clip(clip_rect)
-
-    y_base = TEXT_Y - scroll_y
-
-    for i, (line, chars) in enumerate(rev_lines):
-        yp = y_base + i * LINE_H
-        if yp + LINE_H < TEXT_Y or yp > TEXT_Y + TEXT_H:
-            continue
-
-        display = line[:chars]
-
-        # Colores especiales según contenido
-        upper = display.upper()
-        if 'FELIZ CUMPLE' in upper or 'BYEEEEEEE' in upper:
-            color = PINK
-        elif 'TE QUIERE, SANTI' in upper or '<3' in display:
-            color = GOLD
-        elif display.startswith('Micheeeelle') or display.startswith('Asi que nada'):
-            color = LAVENDER
-        elif display.startswith('Eeeesa Michelle'):
-            color = TEAL
-        else:
-            color = TEXT_COL
-
-        rendered = FONT_TEXT.render(display, True, color)
-        surface.blit(rendered, (TEXT_X + 6, yp))
-
-        # Cursor parpadeante en la última línea
-        if i == len(rev_lines) - 1 and chars_done < total:
-            cx = TEXT_X + 6 + FONT_TEXT.size(display)[0]
-            if (now // 500) % 2 == 0:
-                pygame.draw.rect(surface, GOLD, (cx + 1, yp + 2, 2, LINE_H - 5))
-
-    surface.set_clip(None)
-
-
-def draw_title(surface, now):
-    # Ligero efecto de pulso en el título
-    pulse = 0.85 + 0.15 * math.sin(now * 0.002)
-    base  = "  Feliz Cumpleanios Michelle  "
-    hearts = "<3  " + base + "  <3"
-    col   = tuple(int(c * pulse) for c in PINK)
-    surf  = FONT_TITLE.render(hearts, True, col)
-    x = TEXT_X
-    y = 14
-    surface.blit(surf, (x, y))
-
-
-def draw_separator(surface, reveal):
-    alpha = min(255, int(255 * reveal * 3))
-    sep_x = TEXT_X - 16
-    pygame.draw.line(
-        surface,
-        tuple(int(c * alpha / 255) for c in LAVENDER),
-        (sep_x, TEXT_Y),
-        (sep_x, HEIGHT - 20),
-        1,
-    )
-
+    pygame.draw.rect(surface, SCROLL_BG,
+                     (SCROLLBAR_X, TEXT_Y, SCROLLBAR_W, TEXT_H), border_radius=4)
+    visible_ratio = min(1.0, TEXT_H / total_text_h)
+    thumb_h = max(20, int(TEXT_H * visible_ratio))
+    scroll_ratio = scroll / max_scroll
+    thumb_y = TEXT_Y + int((TEXT_H - thumb_h) * scroll_ratio)
+    pygame.draw.rect(surface, SCROLL_THUMB,
+                     (SCROLLBAR_X, thumb_y, SCROLLBAR_W, thumb_h), border_radius=4)
 
 # ─────────────────────────────────────────────────────────────────
 #  LOOP PRINCIPAL
@@ -328,61 +284,141 @@ while running:
     for event in pygame.event.get():
         if event.type == pygame.QUIT:
             running = False
-        if event.type == pygame.KEYDOWN:
+
+        elif event.type == pygame.KEYDOWN:
             if event.key == pygame.K_ESCAPE:
                 running = False
-            # Espacio o Enter para saltar al final (por si es muy lento)
-            if event.key in (pygame.K_SPACE, pygame.K_RETURN):
-                chars_revealed = total_chars
-                img_reveal = 1.0
+            elif event.key in (pygame.K_SPACE, pygame.K_RETURN):
+                # Saltar animacion
+                chars_revealed  = total_chars
+                strokes_done_f  = float(TOTAL_STROKES)
+            elif event.key == pygame.K_DOWN:
+                scroll_target = min(max(0, total_text_h - TEXT_H),
+                                    scroll_target + LINE_H * 3)
+                auto_scroll   = False
+            elif event.key == pygame.K_UP:
+                scroll_target = max(0, scroll_target - LINE_H * 3)
+                auto_scroll   = False
 
-    # ── Actualizar imagen ─────────────────────────────────────────
-    if img_reveal < 1.0:
-        img_reveal = min(1.0, img_reveal + IMG_REVEAL_SPEED)
+        elif event.type == pygame.MOUSEWHEEL:
+            max_s         = max(0, total_text_h - TEXT_H)
+            scroll_target = max(0, min(max_s, scroll_target - event.y * LINE_H * 3))
+            # Si el usuario scrollea hacia abajo hasta el fondo, reactivar auto
+            if scroll_target >= max_s - LINE_H:
+                auto_scroll = True
+            else:
+                auto_scroll = False
+
+    # ── Actualizar brush stroke reveal ───────────────────────────
+    if not img_fully_revealed and image and reveal_mask:
+        strokes_done_f += STROKES_PER_FRAME
+        target_int = min(TOTAL_STROKES, int(strokes_done_f))
+        while strokes_done < target_int:
+            x, y, wr, hr = strokes_data[strokes_done]
+            pygame.draw.ellipse(reveal_mask, (0, 0, 0, 0),
+                                (x - wr, y - hr, wr * 2, hr * 2))
+            strokes_done += 1
+        if strokes_done >= TOTAL_STROKES:
+            img_fully_revealed = True
+            reveal_mask = None   # liberar memoria
 
     # ── Actualizar texto ──────────────────────────────────────────
     if chars_revealed < total_chars:
         elapsed = now - last_char_tick
         if elapsed >= CHAR_DELAY_MS:
-            add = max(1, elapsed // CHAR_DELAY_MS)
+            add            = max(1, elapsed // CHAR_DELAY_MS)
             chars_revealed = min(total_chars, chars_revealed + add)
             last_char_tick = now
 
     # ── Auto-scroll ───────────────────────────────────────────────
-    rev_lines     = get_revealed_lines(all_lines, chars_revealed)
-    total_text_h  = len(rev_lines) * LINE_H
-    target_scroll = max(0, total_text_h - TEXT_H)
-    # Suavizado del scroll
-    text_scroll += (target_scroll - text_scroll) * 0.12
+    rev_lines    = get_revealed_lines(chars_revealed)
+    current_h    = len(rev_lines) * LINE_H
+    max_scroll   = max(0, total_text_h - TEXT_H)
 
-    # ── Partículas ────────────────────────────────────────────────
-    if random.random() < 0.35:
+    if auto_scroll and chars_revealed < total_chars:
+        scroll_target = max(0, current_h - TEXT_H)
+
+    # Suavizado del scroll
+    scroll_current += (scroll_target - scroll_current) * 0.14
+
+    # ── Particulas ────────────────────────────────────────────────
+    if random.random() < 0.32:
         particles.append(Particle())
     particles = [p for p in particles if p.update()]
 
-    # ── Dibujar ───────────────────────────────────────────────────
+    # ─────────────────────────────────────────────────────────────
+    #  DIBUJAR
+    # ─────────────────────────────────────────────────────────────
     screen.fill(BG)
 
     # Imagen
-    draw_image_reveal(screen, image, img_x, img_y, iw, ih, img_reveal)
-    draw_image_frame(screen, img_x, img_y, iw, ih, img_reveal)
+    if image:
+        screen.blit(image, (img_x, img_y))
+        if reveal_mask:
+            screen.blit(reveal_mask, (img_x, img_y))
+        # Marco que aparece a medida que se revela
+        reveal_pct = min(1.0, strokes_done / TOTAL_STROKES)
+        fa = min(255, int(255 * reveal_pct * 2))
+        fc = tuple(int(c * fa / 255) for c in LIGHT_GREEN)
+        pygame.draw.rect(screen, fc, (img_x - 2, img_y - 2, iw + 4, ih + 4), 2)
+    else:
+        pygame.draw.rect(screen, (28, 22, 45), (img_x, img_y, iw, ih))
+        ph = FONT_TEXT.render("[ michelle.jpg no encontrada ]", True, LAVENDER)
+        screen.blit(ph, (img_x + 10, img_y + ih // 2 - 10))
+
+    # Caption debajo de la imagen
+    reveal_pct  = min(1.0, strokes_done / TOTAL_STROKES) if TOTAL_STROKES else 1.0
+    cap_alpha   = int(255 * reveal_pct)
+    if cap_alpha > 0:
+        cap_surf = FONT_CAPTION.render(CAPTION_TEXT, True, CAPTION_COL)
+        if cap_alpha < 255:
+            cap_surf.set_alpha(cap_alpha)
+        cx_cap = img_x + (iw - cap_surf.get_width()) // 2
+        screen.blit(cap_surf, (cx_cap, img_y + ih + 8))
 
     # Separador vertical
-    draw_separator(screen, img_reveal)
+    pygame.draw.line(screen, (55, 45, 85),
+                     (TEXT_X - 16, TEXT_Y), (TEXT_X - 16, HEIGHT - 20), 1)
 
-    # Título
-    draw_title(screen, now)
+    # Titulo con pulso
+    pulse      = 0.85 + 0.15 * math.sin(now * 0.002)
+    title_col  = tuple(int(c * pulse) for c in LIGHT_GREEN)
+    title_surf = FONT_TITLE.render("<3  Feliz Cumpleanios Michelle  <3", True, title_col)
+    screen.blit(title_surf, (TEXT_X, 14))
 
-    # Texto
-    draw_text_panel(screen, rev_lines, int(text_scroll), now, chars_revealed, total_chars)
+    # ── Panel de texto con clipping ───────────────────────────────
+    clip_rect = pygame.Rect(TEXT_X, TEXT_Y, TEXT_W, TEXT_H)
+    screen.set_clip(clip_rect)
 
-    # Partículas
+    y_base = TEXT_Y - int(scroll_current)
+    for i, (line, chars) in enumerate(rev_lines):
+        yp = y_base + i * LINE_H
+        if yp + LINE_H < TEXT_Y or yp > TEXT_Y + TEXT_H:
+            continue
+        display  = line[:chars]
+        rendered = FONT_TEXT.render(display, True, line_color(line))
+        screen.blit(rendered, (TEXT_X + 6, yp))
+
+        # Cursor parpadeante en la ultima linea siendo escrita
+        if i == len(rev_lines) - 1 and chars_revealed < total_chars:
+            cx2 = TEXT_X + 6 + FONT_TEXT.size(display)[0]
+            if (now // 500) % 2 == 0:
+                pygame.draw.rect(screen, GOLD, (cx2 + 1, yp + 2, 2, LINE_H - 5))
+
+    screen.set_clip(None)
+
+    # Scrollbar
+    draw_scrollbar(screen, int(scroll_current), max_scroll)
+
+    # Particulas
     for p in particles:
         p.draw(screen)
 
-    # Hint de tecla (desaparece después de 5s)
-    if now < 5000:
-        hint = FONT_TEXT.render("ESC = salir  |  ESPACIO = saltar animacion", True, (80, 70, 100))
+    # Hint (desaparece a los 5s)
+    if now < 5500:
+        hint = FONT_TEXT.render(
+            "ESC = salir  |  ESPACIO = saltar animacion  |  rueda del raton / flechas = scroll",
+            True, (65, 58, 95))
         screen.blit(hint, (WIDTH - hint.get_width() - 10, HEIGHT - 22))
 
     pygame.display.flip()
