@@ -1,0 +1,484 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+  <title>Feliz Cumpleaños Michelle ♥</title>
+  <style>
+    *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
+
+    :root {
+      --bg:          #0a0814;
+      --turquoise:   #4bd2c8;
+      --light-green: #8ce18c;
+      --gold:        #ffd250;
+      --lavender:    #bea5ff;
+      --caption:     #968cb9;
+      --separator:   #372d55;
+    }
+
+    html { background: var(--bg); }
+
+    body {
+      background: var(--bg);
+      color: var(--turquoise);
+      font-family: 'Segoe UI', Ubuntu, 'Liberation Sans', Arial, sans-serif;
+      font-size: 15px;
+      line-height: 1.7;
+      min-height: 100vh;
+      padding: 14px 16px 60px;
+      position: relative;
+      overflow-x: hidden;
+    }
+
+    /* ── Particles canvas ───────────────────────────────────────── */
+    #particles {
+      position: fixed;
+      inset: 0;
+      pointer-events: none;
+      z-index: 0;
+    }
+
+    /* ── Splash ─────────────────────────────────────────────────── */
+    #splash {
+      position: fixed;
+      inset: 0;
+      background: var(--bg);
+      z-index: 50;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 20px;
+      cursor: pointer;
+      -webkit-tap-highlight-color: transparent;
+    }
+    #splash h1 {
+      color: var(--light-green);
+      font-size: clamp(1.1rem, 5vw, 1.5rem);
+      text-align: center;
+      padding: 0 24px;
+    }
+    #splash .hint {
+      color: var(--lavender);
+      font-size: 0.9rem;
+      animation: pulse 1.6s ease-in-out infinite;
+    }
+    @keyframes pulse {
+      0%, 100% { opacity: 0.3; }
+      50%       { opacity: 1;   }
+    }
+
+    /* ── App ────────────────────────────────────────────────────── */
+    #app { position: relative; z-index: 1; }
+
+    /* ── Title ──────────────────────────────────────────────────── */
+    #title {
+      color: var(--light-green);
+      font-size: clamp(0.95rem, 4.5vw, 1.15rem);
+      font-weight: bold;
+      text-align: center;
+      margin-bottom: 16px;
+      padding: 6px 0;
+      animation: title-pulse 2.5s ease-in-out infinite;
+    }
+    @keyframes title-pulse {
+      0%, 100% { opacity: 0.82; }
+      50%       { opacity: 1;    }
+    }
+
+    /* ── Text ───────────────────────────────────────────────────── */
+    #text-content {
+      white-space: pre-wrap;
+      word-break: break-word;
+    }
+
+    /* Blinking cursor */
+    #cursor {
+      display: none;
+      width: 2px;
+      height: 0.85em;
+      background: var(--gold);
+      vertical-align: middle;
+      margin-left: 1px;
+      animation: blink 0.5s step-end infinite;
+    }
+    @keyframes blink {
+      0%, 100% { opacity: 1; }
+      50%       { opacity: 0; }
+    }
+
+    /* ── Image section ──────────────────────────────────────────── */
+    #image-section {
+      display: none;
+      flex-direction: column;
+      align-items: center;
+      margin-top: 32px;
+    }
+    #image-section.active { display: flex; }
+
+    #img-wrapper {
+      position: relative;
+      display: inline-block;
+      border-radius: 6px;
+      overflow: hidden;
+      box-shadow: 0 0 0px rgba(190,165,255,0);
+      transition: box-shadow 1.5s ease;
+    }
+    #img-wrapper.glowing {
+      box-shadow: 0 0 28px rgba(190,165,255,0.38), 0 0 10px rgba(140,225,140,0.2);
+    }
+
+    #img-border {
+      position: absolute;
+      inset: 0;
+      border: 2px solid transparent;
+      border-radius: 6px;
+      transition: border-color 1s ease;
+      pointer-events: none;
+      z-index: 2;
+    }
+    #img-border.on { border-color: var(--light-green); }
+
+    #michelle-img {
+      display: block;
+      max-width: min(92vw, 440px);
+      max-height: 65vh;
+      width: auto;
+      height: auto;
+      border-radius: 5px;
+      clip-path: inset(0 0 100% 0);
+    }
+
+    /* Scanline */
+    #scanline {
+      position: absolute;
+      left: 0; right: 0;
+      height: 4px;
+      transform: translateY(-50%);
+      background: linear-gradient(to right,
+        transparent 0%,
+        rgba(220,185,255,0.85) 25%,
+        rgba(240,210,255,1)    50%,
+        rgba(220,185,255,0.85) 75%,
+        transparent 100%);
+      box-shadow: 0 0 10px rgba(220,185,255,0.6);
+      pointer-events: none;
+      opacity: 0;
+      z-index: 1;
+    }
+
+    #img-caption {
+      color: var(--caption);
+      font-size: 0.78rem;
+      margin-top: 10px;
+      text-align: center;
+      opacity: 0;
+      transition: opacity 1.4s ease;
+      padding: 0 8px;
+    }
+
+    /* ── Skip button ────────────────────────────────────────────── */
+    #skip-btn {
+      position: fixed;
+      bottom: 20px;
+      right: 18px;
+      z-index: 10;
+      background: rgba(28, 22, 48, 0.88);
+      color: var(--lavender);
+      border: 1px solid var(--separator);
+      border-radius: 20px;
+      padding: 9px 18px;
+      font-size: 0.8rem;
+      cursor: pointer;
+      display: none;
+      -webkit-tap-highlight-color: transparent;
+      backdrop-filter: blur(6px);
+    }
+    #skip-btn.visible { display: block; }
+
+    audio { display: none; }
+  </style>
+</head>
+<body>
+  <canvas id="particles"></canvas>
+
+  <!-- Splash: needed for iOS audio autoplay policy -->
+  <div id="splash">
+    <h1>♥ Feliz Cumpleaños Michelle ♥</h1>
+    <p class="hint">Toca para abrir tu regalo</p>
+  </div>
+
+  <audio id="music" src="gone_gone_gone.mp3" loop preload="auto"></audio>
+
+  <div id="app">
+    <div id="title">❤&thinsp; Feliz Cumpleaños Michelle &thinsp;❤</div>
+    <div id="text-content"></div><span id="cursor"></span>
+
+    <div id="image-section">
+      <div id="img-wrapper">
+        <div id="img-border"></div>
+        <img id="michelle-img" src="michelle.jpeg" alt="Michelle">
+        <div id="scanline"></div>
+      </div>
+      <p id="img-caption">La unica foto que tenemos juntos dio mio</p>
+    </div>
+  </div>
+
+  <button id="skip-btn">Saltar →</button>
+
+  <script>
+    /* ── Constants ─────────────────────────────────────────────── */
+    const CHAR_DELAY_MS    = 20;
+    const REVEAL_DURATION  = 30000; // ms for image scanline reveal
+
+    const C = {
+      turquoise:  '#4bd2c8',
+      lightGreen: '#8ce18c',
+      gold:       '#ffd250',
+      lavender:   '#bea5ff',
+    };
+
+    const MESSAGE =
+`Micheeeelle, hiiii jeje. Primero que nada, FELIZ CUMPLEEEE. Lamento no estar en tu librito, pero luego de estar sobreviviendo en Pforzheim juntos por un semestre mas con los demas, considero que mereces un esfuerzo mayor de mi parte a mandarle mi texto a Miriam para que ella lo transcriba (que se aprecia mucho porque es un chambon).
+
+Ahora, no tenia ni fokin idea de que hacerte. Veia a Naye avanzando el librito, a Sebas dibujando tremendo cartel y yo ahi con mi nula habilidad para las manualidades como wbn sin hacer nada :').
+
+Entonces se me ocurrio hacerte algo en lo que si soy bueno, que es con la computadora basicamente (un poco geek de mi parte? puede ser, pero ya me conoces ya).
+
+Asi que nada, este codiguito es para ti, un regalo mucho mas a mi estilo jeje. Espero que te guste. Ahora si se viene el textazo ehhhhhh (aviso que probablemente me vaya en floro. Voy escribiendo sobre la marcha):
+
+Bueno, incluso antes de conocerte, yo ya sabia la increible persona que eras. Me acuerdo que Naye llego una madrugada a contarme que habia ido a patinar con un grupo de chicas muy divertidas y que la habia pasado increible. Me alegro verla llegar feliz y dije: ojala conocerlas algun dia (no se volvieron a ver en todo el semestre).
+
+Ya el segundo semestre cada vez llegaba con mas historias con ustedes, ya por fin les puse nombre y me hablaba de lo especialmente bien que se entendia con una tal Michelle, una chica super linda, muy graciosa, con una gran personalidad y que le hacia sentir comoda de nuevo (en Pforzheim ps). Y asi me iba contando de ti, de sus planes y de como le ayudaba y le alegraba tu mera existencia. Ya desde ahi te agarre carino sin haber interactuado contigo si quiera, por lo buena persona y excelente amiga que le demostrabas ser. Yo solo escuchaba y pensaba: mrd, que linda persona, quisiera conocerla.
+
+Ya cuando me toco conocerte pude ir confirmando poco a poco todo lo que Naye me conto en algun momento: la muy linda personalidad que tienes, lo graciosa que eres y la increible amiga que puedes llegar a ser. Y este ultimo semestre, me siento muy afortunado de haber podido conocer y conectar aun mas con esta increible mujer, ver lo inteligente y capa que es, los grandes valores que mantiene, lo mucho que se puede llegar a presionar y lo valiente que es para seguir adelante y cumplir lo que se ha propuesto.
+
+Eeeesa Michelle demorona, que le encanta fregar con cualquier cosa y hacer los chistes mas desubicados (no cambies nunca, me haces reir demasiado), que se pone de malas cuando tiene sueno, que escucha playlists de lluvia para estudiar y que le cuesta mucho hablar en camara. Todas esas cosas, y muchas mas que seguro ahora mismo se me pasan, que te convierten en esa persona que todos queremos demasiado.
+
+Realmente espero que pases un muy feliz cumpleanos, vacilate, divierte y sonrie muchisimo. Te mereces todo lo bueno del mundo verdaderamente. Se que estos ultimos meses han sido especialmente dificiles (y para que enganarnos? No se hace mas facil con el tiempo), pero ya te has demostrado a ti misma y a todos lo que puedes lograr. Y uno se derrumba a veces, pero te aseguro que nunca te va a faltar gente dispuesta a apoyarte siempre que lo necesites: tu familia, las chicas, Sebas, yo, etc, etc, etc.
+
+Y bueno, en realidad no se que mas decirte Michelle, se me fue la inspiracion, solo que te quiero muchisimo, estoy muy orgulloso de ti, te admiro demasiado y te mando mis mejores deseos para este dia y para el resto de tu vida y un FUERTE FUERTE ABRAZO. Te debo el estar presente en alguno de tus cumples jajsajjs y si Dios quiere nos volveremos a ver pronto. Por mientras ya estamos hablando estos dias seguramente (a tu ritmo claro esta JAJJAJA).
+
+Sinceramente, no se que tan largo me quedo esto ni cuanto tardare en compilarlo, pero esperemos que salga bien, yo confio. Y eso seria todo creo, pasala lindo Michelle, me despido. BYEEEEEEE
+
+                                                      Te quiere, Santi <3`;
+
+    /* ── Helpers ───────────────────────────────────────────────── */
+    function esc(s) {
+      return s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+    }
+
+    function lineColor(line) {
+      const u = line.toUpperCase();
+      if (u.includes('FELIZ CUMPLE') || u.includes('BYEEEEEEE')) return C.lightGreen;
+      if (u.includes('TE QUIERE, SANTI') || line.trim().endsWith('<3')) return C.gold;
+      if (line.startsWith('Micheeeelle')) return C.lavender;
+      return C.turquoise;
+    }
+
+    function renderHtml(text) {
+      return text.split('\n').map((line, i, arr) => {
+        const color = lineColor(line);
+        const br = i < arr.length - 1 ? '\n' : '';
+        return `<span style="color:${color}">${esc(line)}</span>${br}`;
+      }).join('');
+    }
+
+    /* ── Elements ──────────────────────────────────────────────── */
+    const splash     = document.getElementById('splash');
+    const textEl     = document.getElementById('text-content');
+    const cursorEl   = document.getElementById('cursor');
+    const imgSection = document.getElementById('image-section');
+    const img        = document.getElementById('michelle-img');
+    const imgWrapper = document.getElementById('img-wrapper');
+    const imgBorder  = document.getElementById('img-border');
+    const scanline   = document.getElementById('scanline');
+    const caption    = document.getElementById('img-caption');
+    const music      = document.getElementById('music');
+    const skipBtn    = document.getElementById('skip-btn');
+
+    /* ── Particles ─────────────────────────────────────────────── */
+    const canvas = document.getElementById('particles');
+    const ctx    = canvas.getContext('2d');
+
+    function resizeCanvas() {
+      canvas.width  = window.innerWidth;
+      canvas.height = window.innerHeight;
+    }
+    resizeCanvas();
+    window.addEventListener('resize', resizeCanvas);
+
+    const PCOLS = [C.lightGreen, C.gold, C.lavender, '#ffffff', C.turquoise, '#c8ffc8'];
+
+    class Particle {
+      constructor() {
+        this.x     = Math.random() * canvas.width;
+        this.y     = Math.random() * canvas.height;
+        this.size  = Math.random() * 2 + 1;
+        this.color = PCOLS[Math.floor(Math.random() * PCOLS.length)];
+        this.life  = 70 + Math.random() * 90;
+        this.maxL  = this.life;
+        this.vx    = (Math.random() - 0.5) * 0.6;
+        this.vy    = -(Math.random() * 0.55 + 0.15);
+        this.phase = Math.random() * Math.PI * 2;
+        this.kind  = Math.random() < 0.18 ? 'star' : 'dot';
+      }
+      update() {
+        this.x += this.vx + 0.25 * Math.sin(this.life * 0.08 + this.phase);
+        this.y += this.vy;
+        this.life--;
+        return this.life > 0;
+      }
+      draw() {
+        const a = Math.max(0,
+          (this.life / this.maxL) * (0.5 + 0.5 * Math.sin(this.life * 0.15 + this.phase)) * 0.8
+        );
+        ctx.globalAlpha = a;
+        ctx.fillStyle   = this.color;
+        ctx.strokeStyle = this.color;
+        if (this.kind === 'dot') {
+          ctx.beginPath();
+          ctx.arc(this.x, this.y, this.size, 0, Math.PI * 2);
+          ctx.fill();
+        } else {
+          const r = this.size + 2;
+          const rot = this.phase + this.life * 0.03;
+          ctx.lineWidth = 1;
+          for (const angle of [rot, rot + Math.PI / 2]) {
+            ctx.beginPath();
+            ctx.moveTo(this.x + r * Math.cos(angle), this.y + r * Math.sin(angle));
+            ctx.lineTo(this.x - r * Math.cos(angle), this.y - r * Math.sin(angle));
+            ctx.stroke();
+          }
+          ctx.beginPath();
+          ctx.arc(this.x, this.y, 1, 0, Math.PI * 2);
+          ctx.fill();
+        }
+        ctx.globalAlpha = 1;
+      }
+    }
+
+    let particles = Array.from({ length: 55 }, () => new Particle());
+
+    function particleLoop() {
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+      if (Math.random() < 0.32) particles.push(new Particle());
+      particles = particles.filter(p => p.update());
+      particles.forEach(p => p.draw());
+      requestAnimationFrame(particleLoop);
+    }
+    particleLoop();
+
+    /* ── Typing ────────────────────────────────────────────────── */
+    let charIndex    = 0;
+    let typingDone   = false;
+    let lastCharTime = null;
+
+    function typeFrame(ts) {
+      if (lastCharTime === null) lastCharTime = ts;
+      const elapsed = ts - lastCharTime;
+      const add = Math.max(1, Math.floor(elapsed / CHAR_DELAY_MS));
+
+      charIndex     = Math.min(MESSAGE.length, charIndex + add);
+      lastCharTime  = ts;
+
+      textEl.innerHTML = renderHtml(MESSAGE.slice(0, charIndex));
+
+      // Auto-scroll to bottom while typing
+      window.scrollTo(0, document.body.scrollHeight);
+
+      if (charIndex < MESSAGE.length) {
+        requestAnimationFrame(typeFrame);
+      } else {
+        finishTyping();
+      }
+    }
+
+    function finishTyping() {
+      typingDone          = true;
+      cursorEl.style.display = 'none';
+      skipBtn.classList.remove('visible');
+      startReveal();
+    }
+
+    function startTyping() {
+      cursorEl.style.display = 'inline-block';
+      skipBtn.classList.add('visible');
+      requestAnimationFrame(typeFrame);
+    }
+
+    /* ── Image reveal ──────────────────────────────────────────── */
+    let revealStart = null;
+
+    function startReveal() {
+      imgSection.classList.add('active');
+      // Scroll down to image after a small delay
+      setTimeout(() => {
+        imgSection.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      }, 400);
+      requestAnimationFrame(revealFrame);
+    }
+
+    function revealFrame(ts) {
+      if (!revealStart) revealStart = ts;
+      const prog = Math.min(1, (ts - revealStart) / REVEAL_DURATION);
+
+      // clip-path: inset(0 0 bottom% 0) — bottom goes 100%→0% as prog 0→1
+      const hidePct = (1 - prog) * 100;
+      img.style.clipPath = `inset(0 0 ${hidePct.toFixed(3)}% 0)`;
+
+      // Scanline at bottom edge of revealed area
+      scanline.style.top     = `${(prog * 100).toFixed(3)}%`;
+      scanline.style.opacity = prog > 0 && prog < 1 ? '1' : '0';
+
+      if (prog < 1) {
+        requestAnimationFrame(revealFrame);
+      } else {
+        img.style.clipPath = 'inset(0 0 0% 0)';
+        imgWrapper.classList.add('glowing');
+        imgBorder.classList.add('on');
+        caption.style.opacity = '1';
+      }
+    }
+
+    /* ── Skip ──────────────────────────────────────────────────── */
+    function skipAll() {
+      charIndex = MESSAGE.length;
+      textEl.innerHTML = renderHtml(MESSAGE);
+      cursorEl.style.display = 'none';
+      skipBtn.classList.remove('visible');
+
+      if (!typingDone) {
+        typingDone = true;
+        startReveal();
+      }
+      // Instantly complete the reveal too
+      revealStart = performance.now() - REVEAL_DURATION;
+      img.style.clipPath    = 'inset(0 0 0% 0)';
+      scanline.style.opacity = '0';
+      imgWrapper.classList.add('glowing');
+      imgBorder.classList.add('on');
+      caption.style.opacity = '1';
+    }
+
+    skipBtn.addEventListener('click', skipAll);
+    skipBtn.addEventListener('touchend', e => { e.preventDefault(); skipAll(); });
+
+    /* ── Start (requires user tap for iOS audio) ───────────────── */
+    function start() {
+      splash.style.transition = 'opacity 0.5s';
+      splash.style.opacity    = '0';
+      setTimeout(() => { splash.style.display = 'none'; }, 500);
+
+      music.volume = 0.7;
+      music.play().catch(() => {/* autoplay blocked, no problem */});
+
+      startTyping();
+    }
+
+    splash.addEventListener('click', start);
+    splash.addEventListener('touchend', e => { e.preventDefault(); start(); });
+  </script>
+</body>
+</html>
