@@ -122,7 +122,7 @@ IMG_AREA_X = 15
 IMG_AREA_Y = 40
 
 script_dir = os.path.dirname(os.path.abspath(__file__))
-img_path   = os.path.join(script_dir, "michelle.jpg")
+img_path   = os.path.join(script_dir, "michelle.jpeg")
 
 image = None
 iw, ih = IMG_AREA_W, IMG_AREA_H
@@ -138,7 +138,7 @@ try:
     img_y = IMG_AREA_Y + (IMG_AREA_H - ih) // 2
     print(f"Imagen cargada: {iw}x{ih}")
 except Exception as e:
-    print(f"[!] No se pudo cargar 'michelle.jpg': {e}")
+    print(f"[!] No se pudo cargar 'michelle.jpeg': {e}")
     print("    Asegurate de que el archivo esta en la misma carpeta que el script.")
 
 # ─────────────────────────────────────────────────────────────────
