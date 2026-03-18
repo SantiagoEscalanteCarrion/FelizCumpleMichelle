@@ -26,8 +26,8 @@ FPS               = 60
 CHAR_DELAY_MS     = 22      # ms por caracter
 
 # Brush stroke reveal
-TOTAL_STROKES     = 900     # trazos totales para revelar imagen
-STROKES_PER_FRAME = 1.6     # trazos por frame  → ~9-10 segundos
+TOTAL_STROKES     = 1100    # trazos totales para revelar imagen
+STROKES_PER_FRAME = 0.34    # trazos por frame  → ~54 segundos
 
 # Colores
 BG          = (10, 8, 20)
@@ -229,6 +229,8 @@ class Particle:
         self.vx    = random.uniform(-0.3, 0.3)
         self.vy    = random.uniform(-0.7, -0.15)
         self.phase = random.uniform(0, math.pi * 2)
+        # 18% de las partículas son sparkles en forma de cruz/estrella
+        self.kind  = 'star' if random.random() < 0.18 else 'dot'
 
     def update(self):
         self.x += self.vx + 0.25 * math.sin(self.life * 0.08 + self.phase)
@@ -239,10 +241,28 @@ class Particle:
     def draw(self, surface):
         alpha = int(200 * (self.life / self.max_l) *
                     (0.5 + 0.5 * math.sin(self.life * 0.15 + self.phase)))
-        s = pygame.Surface((self.size * 2 + 2, self.size * 2 + 2), pygame.SRCALPHA)
-        pygame.draw.circle(s, (*self.color, alpha),
-                           (self.size + 1, self.size + 1), self.size)
-        surface.blit(s, (int(self.x) - self.size - 1, int(self.y) - self.size - 1))
+        col = (*self.color, alpha)
+        if self.kind == 'dot':
+            s = pygame.Surface((self.size * 2 + 2, self.size * 2 + 2), pygame.SRCALPHA)
+            pygame.draw.circle(s, col, (self.size + 1, self.size + 1), self.size)
+            surface.blit(s, (int(self.x) - self.size - 1, int(self.y) - self.size - 1))
+        else:
+            # Estrella de 4 puntas (cruz con rotación suave)
+            r  = self.size + 2
+            cx, cy = int(self.x), int(self.y)
+            rot = self.phase + self.life * 0.03   # gira lentamente
+            s = pygame.Surface((r * 2 + 4, r * 2 + 4), pygame.SRCALPHA)
+            sc, ss = r * 2 + 2, r * 2 + 2
+            ox, oy = sc // 2, ss // 2
+            for a in [rot, rot + math.pi / 2]:
+                x1 = ox + int(r * math.cos(a))
+                y1 = oy + int(r * math.sin(a))
+                x2 = ox - int(r * math.cos(a))
+                y2 = oy - int(r * math.sin(a))
+                pygame.draw.line(s, col, (x1, y1), (x2, y2), 1)
+            # Punto central brillante
+            pygame.draw.circle(s, col, (ox, oy), 1)
+            surface.blit(s, (cx - ox, cy - oy))
 
 particles = [Particle() for _ in range(55)]
 
@@ -348,29 +368,45 @@ while running:
     # ─────────────────────────────────────────────────────────────
     screen.fill(BG)
 
-    # Imagen
-    if image:
-        screen.blit(image, (img_x, img_y))
-        if reveal_mask:
-            screen.blit(reveal_mask, (img_x, img_y))
-        reveal_pct = min(1.0, strokes_done / TOTAL_STROKES)
-        fa = min(255, int(255 * reveal_pct * 2))
-        fc = tuple(int(c * fa / 255) for c in LIGHT_GREEN)
-        pygame.draw.rect(screen, fc, (img_x - 2, img_y - 2, iw + 4, ih + 4), 2)
-    else:
+    # Placeholder si no hay imagen
+    if not image:
         pygame.draw.rect(screen, (28, 22, 45), (img_x, img_y, iw, ih))
         ph = FONT_TEXT.render("[ michelle.jpg no encontrada ]", True, LAVENDER)
         screen.blit(ph, (img_x + 10, img_y + ih // 2 - 10))
 
-    # Caption
+    # Halo suave alrededor de la imagen (aparece conforme se revela)
+    if image:
+        reveal_pct = min(1.0, strokes_done / TOTAL_STROKES)
+        for glow_i in range(5, 0, -1):
+            ga = int(30 * reveal_pct * (glow_i / 5))
+            gc = (*LAVENDER, ga)
+            gs = pygame.Surface((iw + glow_i * 4, ih + glow_i * 4), pygame.SRCALPHA)
+            pygame.draw.rect(gs, gc, (0, 0, iw + glow_i * 4, ih + glow_i * 4),
+                             border_radius=4)
+            screen.blit(gs, (img_x - glow_i * 2, img_y - glow_i * 2))
+        # Redibujar imagen encima del halo
+        screen.blit(image, (img_x, img_y))
+        if reveal_mask:
+            screen.blit(reveal_mask, (img_x, img_y))
+        fa = min(255, int(255 * reveal_pct * 2))
+        fc = tuple(int(c * fa / 255) for c in LIGHT_GREEN)
+        pygame.draw.rect(screen, fc, (img_x - 2, img_y - 2, iw + 4, ih + 4), 2)
+
+    # Caption con fondo semitransparente para legibilidad
     reveal_pct = min(1.0, strokes_done / TOTAL_STROKES) if TOTAL_STROKES else 1.0
     cap_alpha  = int(255 * reveal_pct)
     if cap_alpha > 0:
-        cap_surf = FONT_CAPTION.render(CAPTION_TEXT, True, CAPTION_COL)
-        if cap_alpha < 255:
-            cap_surf.set_alpha(cap_alpha)
-        cx_cap = img_x + (iw - cap_surf.get_width()) // 2
-        screen.blit(cap_surf, (cx_cap, img_y + ih + 8))
+        cap_surf = FONT_CAPTION.render(CAPTION_TEXT, True, (210, 205, 230))
+        cap_w, cap_h = cap_surf.get_width(), cap_surf.get_height()
+        cx_cap = img_x + (iw - cap_w) // 2
+        cy_cap = img_y + ih + 8
+        # Fondo pill
+        pad_x, pad_y = 10, 4
+        bg_surf = pygame.Surface((cap_w + pad_x * 2, cap_h + pad_y * 2), pygame.SRCALPHA)
+        bg_surf.fill((0, 0, 0, min(180, cap_alpha)))
+        screen.blit(bg_surf, (cx_cap - pad_x, cy_cap - pad_y))
+        cap_surf.set_alpha(cap_alpha)
+        screen.blit(cap_surf, (cx_cap, cy_cap))
 
     # Separador vertical
     pygame.draw.line(screen, (55, 45, 85),
