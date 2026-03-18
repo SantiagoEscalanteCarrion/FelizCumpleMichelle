@@ -26,7 +26,7 @@
       font-size: 15px;
       line-height: 1.7;
       min-height: 100vh;
-      padding: 14px 16px 60px;
+      padding: calc(env(safe-area-inset-top, 0px) + 48px) 20px 60px;
       position: relative;
       overflow-x: hidden;
     }
@@ -229,8 +229,8 @@
 
   <script>
     /* ── Constants ─────────────────────────────────────────────── */
-    const CHAR_DELAY_MS    = 20;
-    const REVEAL_DURATION  = 30000; // ms for image scanline reveal
+    const CHAR_DELAY_MS    = 38;
+    const REVEAL_DURATION  = 18000; // ms for image scanline reveal
 
     const C = {
       turquoise:  '#4bd2c8',
