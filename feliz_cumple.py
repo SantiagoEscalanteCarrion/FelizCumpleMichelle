@@ -26,7 +26,7 @@ FPS               = 60
 CHAR_DELAY_MS     = 14      # ms por caracter (~faster)
 
 # Scanline reveal
-IMG_REVEAL_SPEED  = 0.00028  # fracción por frame → ~60 segundos a 60fps
+IMG_REVEAL_SPEED  = 0.00056  # fracción por frame → ~30 segundos a 60fps
 
 # Colores
 BG          = (10, 8, 20)
