@@ -23,11 +23,10 @@ pygame.init()
 # ─────────────────────────────────────────────────────────────────
 WIDTH, HEIGHT     = 1300, 750
 FPS               = 60
-CHAR_DELAY_MS     = 22      # ms por caracter
+CHAR_DELAY_MS     = 14      # ms por caracter (~faster)
 
-# Brush stroke reveal
-TOTAL_STROKES     = 1100    # trazos totales para revelar imagen
-STROKES_PER_FRAME = 0.34    # trazos por frame  → ~54 segundos
+# Scanline reveal
+IMG_REVEAL_SPEED  = 0.00028  # fracción por frame → ~60 segundos a 60fps
 
 # Colores
 BG          = (10, 8, 20)
@@ -126,33 +125,8 @@ except Exception as e:
 
 CAPTION_TEXT = "La unica foto que tenemos juntos dio mio"
 
-# Preparar mascara de reveal y trazos
-reveal_mask        = None
-strokes_data       = []
-strokes_done_f     = 0.0
-strokes_done       = 0
-img_fully_revealed = False
-
-if image:
-    reveal_mask = pygame.Surface((iw, ih), pygame.SRCALPHA)
-    reveal_mask.fill((0, 0, 0, 255))   # negro opaco = imagen oculta
-
-    random.seed(42)   # seed fijo para consistencia
-    for _ in range(TOTAL_STROKES):
-        x    = random.randint(-35, iw + 35)
-        y    = random.randint(-35, ih + 35)
-        roll = random.random()
-        if roll < 0.12:
-            r = random.randint(4, 16)
-        elif roll < 0.82:
-            r = random.randint(16, 48)
-        else:
-            r = random.randint(48, 85)
-        aspect = random.uniform(0.45, 1.9)
-        wr = max(3, int(r * aspect))
-        hr = max(3, int(r / aspect))
-        strokes_data.append((x, y, wr, hr))
-    random.seed()   # restaurar semilla aleatoria
+# Estado del scanline reveal
+img_reveal = 0.0   # 0.0 → 1.0 (fracción de imagen revelada de arriba a abajo)
 
 # ─────────────────────────────────────────────────────────────────
 #  AREA DE TEXTO
@@ -310,7 +284,7 @@ while running:
                 running = False
             elif event.key in (pygame.K_SPACE, pygame.K_RETURN):
                 chars_revealed = total_chars
-                strokes_done_f = float(TOTAL_STROKES)
+                img_reveal     = 1.0
             elif event.key == pygame.K_DOWN:
                 scroll_target = min(max(0, total_text_h - TEXT_H),
                                     scroll_target + LINE_H * 3)
@@ -327,18 +301,9 @@ while running:
             else:
                 auto_scroll = False
 
-    # ── Brush stroke reveal ───────────────────────────────────────
-    if not img_fully_revealed and image and reveal_mask:
-        strokes_done_f += STROKES_PER_FRAME
-        target_int = min(TOTAL_STROKES, int(strokes_done_f))
-        while strokes_done < target_int:
-            x, y, wr, hr = strokes_data[strokes_done]
-            pygame.draw.ellipse(reveal_mask, (0, 0, 0, 0),
-                                (x - wr, y - hr, wr * 2, hr * 2))
-            strokes_done += 1
-        if strokes_done >= TOTAL_STROKES:
-            img_fully_revealed = True
-            reveal_mask = None
+    # ── Scanline reveal ───────────────────────────────────────────
+    if img_reveal < 1.0:
+        img_reveal = min(1.0, img_reveal + IMG_REVEAL_SPEED)
 
     # ── Texto ─────────────────────────────────────────────────────
     if chars_revealed < total_chars:
@@ -374,26 +339,37 @@ while running:
         ph = FONT_TEXT.render("[ michelle.jpg no encontrada ]", True, LAVENDER)
         screen.blit(ph, (img_x + 10, img_y + ih // 2 - 10))
 
-    # Halo suave alrededor de la imagen (aparece conforme se revela)
+    # Halo suave + scanline reveal
     if image:
-        reveal_pct = min(1.0, strokes_done / TOTAL_STROKES)
+        # Halo lavanda que aparece conforme se revela
         for glow_i in range(5, 0, -1):
-            ga = int(30 * reveal_pct * (glow_i / 5))
-            gc = (*LAVENDER, ga)
+            ga = int(30 * img_reveal * (glow_i / 5))
             gs = pygame.Surface((iw + glow_i * 4, ih + glow_i * 4), pygame.SRCALPHA)
-            pygame.draw.rect(gs, gc, (0, 0, iw + glow_i * 4, ih + glow_i * 4),
-                             border_radius=4)
+            pygame.draw.rect(gs, (*LAVENDER, ga),
+                             (0, 0, iw + glow_i * 4, ih + glow_i * 4), border_radius=4)
             screen.blit(gs, (img_x - glow_i * 2, img_y - glow_i * 2))
-        # Redibujar imagen encima del halo
-        screen.blit(image, (img_x, img_y))
-        if reveal_mask:
-            screen.blit(reveal_mask, (img_x, img_y))
-        fa = min(255, int(255 * reveal_pct * 2))
+        # Imagen revelada de arriba a abajo
+        reveal_px = int(ih * img_reveal)
+        if reveal_px > 0:
+            screen.blit(image.subsurface((0, 0, iw, reveal_px)), (img_x, img_y))
+        # Línea de escaneo brillante en el borde
+        if img_reveal < 1.0:
+            scan_y = img_y + reveal_px
+            for i in range(8):
+                a = max(0, 160 - i * 20)
+                sl = pygame.Surface((iw, 2), pygame.SRCALPHA)
+                sl.fill((200, 150, 255, a))
+                screen.blit(sl, (img_x, scan_y - i))
+            bright = pygame.Surface((iw, 3), pygame.SRCALPHA)
+            bright.fill((230, 200, 255, 210))
+            screen.blit(bright, (img_x, scan_y))
+        # Marco verde que aparece
+        fa = min(255, int(255 * img_reveal * 2))
         fc = tuple(int(c * fa / 255) for c in LIGHT_GREEN)
         pygame.draw.rect(screen, fc, (img_x - 2, img_y - 2, iw + 4, ih + 4), 2)
 
     # Caption con fondo semitransparente para legibilidad
-    reveal_pct = min(1.0, strokes_done / TOTAL_STROKES) if TOTAL_STROKES else 1.0
+    reveal_pct = img_reveal
     cap_alpha  = int(255 * reveal_pct)
     if cap_alpha > 0:
         cap_surf = FONT_CAPTION.render(CAPTION_TEXT, True, (210, 205, 230))
