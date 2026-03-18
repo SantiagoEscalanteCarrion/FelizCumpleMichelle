@@ -23,7 +23,7 @@ pygame.init()
 # ─────────────────────────────────────────────────────────────────
 WIDTH, HEIGHT     = 1300, 750
 FPS               = 60
-CHAR_DELAY_MS     = 14      # ms por caracter (~faster)
+CHAR_DELAY_MS     = 20      # ms por caracter
 
 # Scanline reveal
 IMG_REVEAL_SPEED  = 0.00056  # fracción por frame → ~30 segundos a 60fps
