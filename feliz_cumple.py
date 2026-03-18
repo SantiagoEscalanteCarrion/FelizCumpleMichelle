@@ -113,7 +113,7 @@ iw, ih = IMG_AREA_W, IMG_AREA_H
 img_x, img_y = IMG_AREA_X, IMG_AREA_Y
 
 try:
-    raw    = pygame.image.load(resource_path("michelle.jpg"))
+    raw    = pygame.image.load(resource_path("michelle.jpeg"))
     rw, rh = raw.get_size()
     scale  = min(IMG_AREA_W / rw, IMG_AREA_H / rh)
     iw, ih = int(rw * scale), int(rh * scale)
