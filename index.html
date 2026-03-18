@@ -229,8 +229,9 @@
 
   <script>
     /* ── Constants ─────────────────────────────────────────────── */
-    const CHAR_DELAY_MS    = 300;
-    const REVEAL_DURATION  = 14000; // ms for image scanline reveal
+    const CHAR_DELAY_MS      = 40;    // ms por caracter (ahora sí se respeta)
+    const PARAGRAPH_PAUSE_MS = 1500; // pausa extra entre párrafos
+    const REVEAL_DURATION    = 14000; // ms para el reveal de la imagen
 
     const C = {
       turquoise:  '#4bd2c8',
@@ -371,32 +372,28 @@ Sinceramente, no se que tan largo me quedo esto ni cuanto tardare en compilarlo,
     particleLoop();
 
     /* ── Typing ────────────────────────────────────────────────── */
-    let charIndex    = 0;
-    let typingDone   = false;
-    let lastCharTime = null;
+    let charIndex  = 0;
+    let typingDone = false;
 
-    function typeFrame(ts) {
-      if (lastCharTime === null) lastCharTime = ts;
-      const elapsed = ts - lastCharTime;
-      const add = Math.max(1, Math.floor(elapsed / CHAR_DELAY_MS));
+    function typeNextChar() {
+      if (typingDone) return;
+      if (charIndex >= MESSAGE.length) { finishTyping(); return; }
 
-      charIndex     = Math.min(MESSAGE.length, charIndex + add);
-      lastCharTime  = ts;
-
+      charIndex++;
       textEl.innerHTML = renderHtml(MESSAGE.slice(0, charIndex));
-
-      // Auto-scroll to bottom while typing
       window.scrollTo(0, document.body.scrollHeight);
 
-      if (charIndex < MESSAGE.length) {
-        requestAnimationFrame(typeFrame);
-      } else {
-        finishTyping();
-      }
+      // Pausa extra después de línea en blanco (salto de párrafo = \n\n)
+      const isParagraphBreak = charIndex > 1 &&
+        MESSAGE[charIndex - 1] === '\n' &&
+        MESSAGE[charIndex - 2] === '\n';
+
+      setTimeout(typeNextChar, isParagraphBreak ? PARAGRAPH_PAUSE_MS : CHAR_DELAY_MS);
     }
 
     function finishTyping() {
-      typingDone          = true;
+      if (typingDone) return;
+      typingDone = true;
       cursorEl.style.display = 'none';
       skipBtn.classList.remove('visible');
       startReveal();
@@ -405,7 +402,7 @@ Sinceramente, no se que tan largo me quedo esto ni cuanto tardare en compilarlo,
     function startTyping() {
       cursorEl.style.display = 'inline-block';
       skipBtn.classList.add('visible');
-      requestAnimationFrame(typeFrame);
+      setTimeout(typeNextChar, CHAR_DELAY_MS);
     }
 
     /* ── Image reveal ──────────────────────────────────────────── */
